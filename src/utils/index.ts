@@ -1,3 +1,5 @@
+import "isomorphic-fetch";
+
 export const DEFAULT_URL = 'https://jsonplaceholder.typicode.com/todos';
 export const DEFAULT_METHOD = 'GET';
 
@@ -35,6 +37,11 @@ export const callFetch = async ({
             body: body ? JSON.stringify(body) : undefined,
         });
         const responseData = await response.json();
+        await new Promise<void>((res, rej) => {
+            setTimeout(() => {
+                res();
+            }, 1000)
+        })
         if (response.ok) {
             data = responseData;
         } else {

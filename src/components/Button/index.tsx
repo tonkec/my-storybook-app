@@ -1,13 +1,16 @@
 import React, { useState, useRef, ComponentProps } from 'react';
 import styled, { css } from 'styled-components';
-import {useFloating, shift, limitShift, arrow} from '@floating-ui/react-dom';
+import {shift, limitShift, arrow} from '@floating-ui/react-dom';
+import { callFetch } from '../../utils';
+import {useInteractions, useHover, useFloating} from '@floating-ui/react-dom-interactions'; 
 
-type Status = 'initial' | 'loading' | 'error'
+export type Status = 'initial' | 'loading' | 'error' | 'timeout'
 
 const statusColor: Record<Status, string> = {
      initial: 'black',
      loading: 'orange',
-     error: 'red'
+     error: 'red',
+     timeout: "red"
 }
 
 interface StyledButtonProps extends ComponentProps<'button'> {
@@ -40,15 +43,19 @@ const StyledArrow =  styled.div<StyledArrowProps>`
 `
 
 interface ButtonProps {
-     title?: string;
      disabled?: boolean;
      children?: React.ReactNode;
-     onClick: () => void | Promise<void>;
+     status?: Status;
+     url: string;
+     maxDuration?: number;
 }
 
-const Button = ({ disabled, children, onClick }: ButtonProps) => {
+const Button = ({ disabled, children, url, status: manualStatus, maxDuration }: ButtonProps) => {
+     const [tooltipOpen, setTooltipOpen] = useState(false);
      const arrowRef = useRef<HTMLDivElement>(null);
-     const {x, y, reference, floating, strategy, middlewareData: {arrow: {x: arrowX, y: arrowY} = {}},} = useFloating({
+     const {x, y, reference, floating, strategy, middlewareData: {arrow: {x: arrowX, y: arrowY} = {}}, context} = useFloating({
+          open: tooltipOpen,
+          onOpenChange: setTooltipOpen,
           placement: 'bottom',
           middleware: [
                arrow({
@@ -61,31 +68,84 @@ const Button = ({ disabled, children, onClick }: ButtonProps) => {
                          }
                     }),
                }),
-     ],
-        });
-     const [status, setStatus] = useState<Status>("initial");
-     const handleOnChange = async () => {
-          setStatus("loading")
-          await onClick()
-          setStatus("initial")  
+          ],
+     });
+     const {getReferenceProps, getFloatingProps} = useInteractions([
+          useHover(context, {
+            enabled: !disabled
+          }),
+     ]);        
+     const [stateStatus, setStatus] = useState<Status>("initial");
+     const status = manualStatus ? manualStatus : stateStatus; 
+
+     const handleOnChange = async () => {   
+          setStatus((previousStatus) => {
+               if (previousStatus === "loading") {
+                    return "error"
+               }
+               return "loading"
+          })
+
+          if (typeof maxDuration === "undefined") {
+               await callFetch({ url: `${url}/` });
+
+                 if (stateStatus === "error") {
+                    return;
+               }
+     
+               setStatus((previousStatus) =>  {
+                    if (previousStatus === "error") {
+                         return previousStatus;
+                    }
+     
+                    return "initial";
+               }) 
+               return;
+          }
+          const p1 = callFetch({ url: `${url}/` });
+          const p2 = new Promise((res, rej) => {
+               setTimeout(()=> {
+                    rej();
+               }, maxDuration) 
+          });
+
+          try {
+                await Promise.race([p1, p2]);
+               if (stateStatus === "error") {
+                    return;
+               }
+     
+               setStatus((previousStatus) =>  {
+                    if (previousStatus === "error") {
+                         return previousStatus;
+                    }
+     
+                    return "initial";
+               }) 
+          } catch (e) {
+               setStatus("timeout");
+          }
      }
 
      return (
           <>
-               <StyledButton ref={reference} type="button" onClick={handleOnChange} $status={status}>
+               <StyledButton {...getReferenceProps({ref: reference})} type="button" onClick={handleOnChange} $status={status}>
                     {status === 'loading' ? "Launching..." : children}
                </StyledButton>
-               {!disabled && <div
+               {!disabled && (tooltipOpen || status === "error" ) && <div
                     ref={floating}
                     role="tooltip"
-                    style={{
-                         position: strategy,
-                         top: y ?? '',
-                         left: x ?? '',
-                         backgroundColor: status === "initial" ? "#292929" : statusColor[status],
-                         color: "#fff",
-                         padding: 10
-                    }}
+                    {...getFloatingProps({
+                         ref: floating,
+                         style: {
+                              position: strategy,
+                              top: y ?? '',
+                              left: x ?? '',
+                              backgroundColor: status === "initial" ? "#292929" : statusColor[status],
+                              color: "#fff",
+                              padding: 10
+                         },
+                       })}                    
                >
                     {status}
                 <StyledArrow $status={status} style={{
@@ -94,8 +154,7 @@ const Button = ({ disabled, children, onClick }: ButtonProps) => {
                     }} ref={arrowRef} />
                </div>
                }
-          </>
-          
+          </>   
      )
 }
 

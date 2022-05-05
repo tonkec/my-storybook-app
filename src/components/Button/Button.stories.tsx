@@ -1,30 +1,36 @@
-import React from 'react'
-import Button from './index';
-import { DEFAULT_URL, callFetch } from '../../utils';
+import Button, { Status } from './index';
+import { DEFAULT_URL } from '../../utils';
+import type { ComponentMeta } from "@storybook/react"
 
-// eslint-disable-next-line
-export default {
+const meta: ComponentMeta<typeof Button> = {
      title: 'Button',
      component: Button,
      argTypes: {
-          backgroundColor: {control: 'color'},
+          url: {control: 'text'},
+          disabled: { control: 'boolean' },
+          status: {
+               control: { type: 'radio' },
+               options: ["initial", "loading", "error"]
+          }
      },
      args: {
-          primary: true,
+          disabled: false,
+          url: DEFAULT_URL
      }
 }
 
-export const Basic = () => {
+export default meta
+
+interface Args {
+     url: string;
+     disabled: boolean;
+     status?: Status;
+}
+
+export const Basic = (args: Args) => {
      return (
-          <Button 
-               onClick={async () => {
-                    await new Promise<void>((resolve, reject) => {
-                         setTimeout(async () => {
-                              await callFetch({ url: `${DEFAULT_URL}/` });
-                              resolve();
-                         }, 1000);
-                    })
-               }}
+          <Button maxDuration={3000}
+               {...args}
           >
                Launch Rocket
           </Button>
