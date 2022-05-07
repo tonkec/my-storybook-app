@@ -18,10 +18,12 @@ export const callFetch = async ({
     method = DEFAULT_METHOD,
     url = DEFAULT_URL,
     body,
+    signal,
 }: {
     method?: "GET";
     url: string
     body?: {}
+    signal?: AbortSignal
 }): Promise<FetchResult> => {
     let data = null;
     let error = null;
@@ -29,6 +31,7 @@ export const callFetch = async ({
 
     try {
         const response = await fetch(url, {
+            signal,
             headers: {
                 Accept: 'application/json',
                 'Content-Type': 'application/json',
@@ -49,8 +52,6 @@ export const callFetch = async ({
         }
         status = response.status;
     } catch (err) {
-        // eslint-disable-next-line no-console
-        console.error(err);
         error = err;
     }
     return {

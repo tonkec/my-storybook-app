@@ -102,18 +102,18 @@ const Button = ({ disabled, children, url, status: manualStatus, maxDuration }: 
                }) 
                return;
           }
-          const p1 = callFetch({ url: `${url}/` });
-          const p2 = new Promise((res, rej) => {
-               setTimeout(()=> {
-                    rej();
-               }, maxDuration) 
-          });
+
+
+          const controller = new AbortController()
+
+          setTimeout(() => {
+               controller.abort()
+          }, maxDuration)
 
           try {
-                await Promise.race([p1, p2]);
-               if (stateStatus === "error") {
-                    return;
-               }
+               const { error } = await callFetch({ url: `${url}/`, signal: controller.signal });;
+               //  @ts-ignore
+               if (error.type === 'abort') throw error
      
                setStatus((previousStatus) =>  {
                     if (previousStatus === "error") {

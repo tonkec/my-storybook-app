@@ -1,4 +1,4 @@
-import { render, screen, act } from '@testing-library/react'
+import { render, screen, act, waitFor } from '@testing-library/react'
 import user from '@testing-library/user-event'
 import Button from '.'
 import {rest} from "msw";
@@ -76,28 +76,11 @@ describe('Our cool Button', () => {
     expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
   })
 
-  it.only("should timeout after maximum duration", () => {
+  it.todo("should timeout after maximum duration", async () => {
     const maxDuration = 3000;
-    const url = 'https://jsonplaceholder.typicode.com/posts'
-    const server = setupServer(
-      rest.get(url, async (req, res, ctx) => {
-        await new Promise((res, rej) => {
-          setTimeout(() => {
-            res();
-          }, maxDuration + 50)
-        })
-        return res(
-          ctx.json(
-            fakeData
-          )
-        )
-      }),
-    )
-
-    server.listen();
 
     render(
-      <Button url={url} maxDuration={maxDuration}>
+      <Button url={URL} maxDuration={maxDuration}>
         Launch Rocket
       </Button>
     )
@@ -108,8 +91,10 @@ describe('Our cool Button', () => {
     act(() => {
       vi.advanceTimersByTime(maxDuration);
     })
-    expect(screen.getByRole("button")).toHaveStyle('border-color: red')
-    server.close();
+    await waitFor(() => {
+      expect(screen.getByRole("button")).toHaveStyle('border-color: red')
+    })
     vi.useRealTimers()
+    clickResolve()
   })
 })
