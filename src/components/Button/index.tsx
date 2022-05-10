@@ -113,7 +113,7 @@ const Button = ({ disabled, children, url, status: manualStatus, maxDuration }: 
           try {
                const { error } = await callFetch({ url: `${url}/`, signal: controller.signal });;
                //  @ts-ignore
-               if (error.type === 'abort') throw error
+               if (error.type === 'aborted') throw error
      
                setStatus((previousStatus) =>  {
                     if (previousStatus === "error") {

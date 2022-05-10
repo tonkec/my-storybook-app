@@ -76,7 +76,7 @@ describe('Our cool Button', () => {
     expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
   })
 
-  it.todo("should timeout after maximum duration", async () => {
+  it("should timeout after maximum duration", async () => {
     const maxDuration = 3000;
 
     render(
